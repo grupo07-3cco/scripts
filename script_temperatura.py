@@ -1,26 +1,24 @@
+import csv
 import random
-import pandas as pd
+from datetime import datetime, timedelta
 
 
-def gerar_coletas(
-    numero_coletas,
-    temp_inicial,
-    variacao_maxima,
-    limite_min,
-    limite_max
-):
+def gerar_coletas(numero_coletas, temp_inicial, variacao_maxima, intervalo, limite_min, limite_max):
     coletas = []
 
+    data_hora = datetime.now()
     temp_atual = temp_inicial
-    coletas.append(round(temp_atual, 1))
 
-    for _ in range(numero_coletas - 1):
+    for i in range(numero_coletas):
+        coleta = {
+            "numero": i + 1,
+            "data_hora": data_hora,
+            "temperatura": round(temp_atual, 1)
+        }
 
-        variacao = random.uniform(
-            -variacao_maxima,
-            variacao_maxima
-        )
+        coletas.append(coleta)
 
+        variacao = random.uniform(-variacao_maxima, variacao_maxima)
         temp_atual += variacao
 
         if temp_atual < limite_min:
@@ -29,80 +27,46 @@ def gerar_coletas(
         elif temp_atual > limite_max:
             temp_atual = limite_max
 
-        coletas.append(round(temp_atual, 1))
+        data_hora += timedelta(seconds=intervalo)
 
     return coletas
 
 
-def gerar_dataset(numero_registros, arquivo):
+def exportar_csv(coletas, nome_arquivo):
+    with open(nome_arquivo, "w", newline="", encoding="utf-8") as arquivo:
+        campos = list(coletas[0].keys())
+        writer = csv.DictWriter(arquivo, fieldnames=campos)
+        writer.writeheader()
+        writer.writerows(coletas)
 
-    registros = []
 
-    sensores = 100
+def simular(temp_inicial_global, numero_simulacoes):
+    print("---------- INICIANDO SIMULAÇÕES DE COLETA ----------\n")
 
-    temperaturas = {}
+    todas_coletas = []
 
-    for sensor_id in range(1, sensores + 1):
-
-        temperatura_inicial = random.uniform(20, 30)
-
+    for i in range(numero_simulacoes):
         variacao_maxima = random.uniform(0.1, 0.6)
 
-        limite_min = temperatura_inicial - random.uniform(3, 6)
-        limite_max = temperatura_inicial + random.uniform(3, 6)
+        limite_min = temp_inicial_global - random.uniform(3.0, 6.0)
+        limite_max = temp_inicial_global + random.uniform(3.0, 6.0)
 
-        temperaturas[sensor_id] = {
-            "atual": temperatura_inicial,
-            "variacao": variacao_maxima,
-            "min": limite_min,
-            "max": limite_max
-        }
+        resultado = gerar_coletas(100, temp_inicial_global, variacao_maxima, 3, limite_min, limite_max)
 
-    for i in range(numero_registros):
+        print(f"Simulação #{i+1:03d} | Variação Máx: {variacao_maxima:.2f}°C | Limites: [{limite_min:.1f}°C a {limite_max:.1f}°C]")
 
-        sensor_id = random.randint(1, sensores)
-        sensor = temperaturas[sensor_id]
+        for coleta in resultado:
+            print(
+                f"  Coleta {coleta['numero']:03d} | "
+                f"{coleta['data_hora'].strftime('%d/%m/%Y %H:%M:%S')} → "
+                f"Temp: {coleta['temperatura']:.1f}°C"
+            )
 
-        temperatura = gerar_coletas(
-            1,
-            sensor["atual"],
-            sensor["variacao"],
-            sensor["min"],
-            sensor["max"]
-        )[0]
+        print()
 
-        sensor["atual"] = temperatura
+        for coleta in resultado:
+            todas_coletas.append({"simulacao": i + 1, **coleta})
 
-        registros.append({
-            "timestamp": pd.Timestamp.now(),
-            "sensor_id": sensor_id,
-            "temperatura": temperatura,
-        })
+    exportar_csv(todas_coletas, "leituras_temperatura.csv")
 
-    df = pd.DataFrame(registros)
-
-    df.to_csv(
-        arquivo,
-        index=False
-    )
-
-    print(
-        f"{arquivo} gerado com "
-        f"{numero_registros:,} registros."
-    )
-
-
-gerar_dataset(
-    100_000,
-    "leituras_100k.csv"
-)
-
-gerar_dataset(
-    1_000_000,
-    "leituras_1m.csv"
-)
-
-gerar_dataset(
-    5_000_000,
-    "leituras_5m.csv"
-)
+simular(25.0, 100)

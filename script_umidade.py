@@ -1,3 +1,4 @@
+import csv
 import random
 from datetime import datetime, timedelta
 
@@ -25,12 +26,22 @@ def gerar_coletas(numero_coletas, valor_inicial, variacao_maxima, intervalo):
     return coletas
 
 
+def exportar_csv(coletas, nome_arquivo):
+    with open(nome_arquivo, "w", newline="", encoding="utf-8") as arquivo:
+        campos = list(coletas[0].keys())
+        writer = csv.DictWriter(arquivo, fieldnames=campos)
+        writer.writeheader()
+        writer.writerows(coletas)
+
+
 coletas = gerar_coletas(
     numero_coletas=100,
     valor_inicial=75,
     variacao_maxima=0.5,
     intervalo=3
 )
+
+exportar_csv(coletas, "leituras_umidade.csv")
 
 for coleta in coletas:
     print(
