@@ -1,6 +1,7 @@
+import csv
 import math
 import random
-import time
+from datetime import datetime, timedelta
 
 TAXA_AMOSTRAGEM = 16000       # 16 kHz
 AMOSTRAS_POR_LEITURA = 1024   # tamanho do bloco de áudio
@@ -73,16 +74,12 @@ def classificar_ruido(db):
     else:
         return "Muito alto"
 
-def iniciar_simulacao():
+def gerar_coletas(numero_coletas, intervalo):
+    coletas = []
 
-    print("==============================================")
-    print("     SIMULADOR DE SENSOR INMP441")
-    print("==============================================")
-    print(f"Taxa de amostragem: {TAXA_AMOSTRAGEM} Hz")
-    print(f"Amostras por leitura: {AMOSTRAS_POR_LEITURA}")
-    print("==============================================\n")
+    data_hora = datetime.now()
 
-    while True:
+    for i in range(numero_coletas):
 
         nivel_ruido = random.choice([
             100,    # silêncio
@@ -101,12 +98,37 @@ def iniciar_simulacao():
 
         classificacao = classificar_ruido(db)
 
-        print(
-            f"RMS: {rms:8.2f} | "
-            f"dB relativo: {db:6.2f} | "
-            f"Ambiente: {classificacao}"
-        )
+        coleta = {
+            "numero": i + 1,
+            "data_hora": data_hora,
+            "db": round(db, 2),
+            "classificacao": classificacao
+        }
 
-        time.sleep(0.5)
+        coletas.append(coleta)
 
-iniciar_simulacao()
+        data_hora += timedelta(seconds=intervalo)
+
+    return coletas
+
+def exportar_csv(coletas, nome_arquivo):
+    with open(nome_arquivo, "w", newline="", encoding="utf-8") as arquivo:
+        campos = list(coletas[0].keys())
+        writer = csv.DictWriter(arquivo, fieldnames=campos)
+        writer.writeheader()
+        writer.writerows(coletas)
+
+
+coletas = gerar_coletas(
+    numero_coletas=100,
+    intervalo=0.5
+)
+
+exportar_csv(coletas, "leituras_ruido.csv")
+
+for coleta in coletas:
+    print(
+        f"Coleta {coleta['numero']:03d} | "
+        f"{coleta['data_hora'].strftime('%d/%m/%Y %H:%M:%S')} → "
+        f"dB: {coleta['db']:.2f} ({coleta['classificacao']})"
+    )
