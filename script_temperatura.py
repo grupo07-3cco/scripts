@@ -23,6 +23,7 @@ def gerar_coletas(numero_coletas, temp_inicial, variacao_maxima, intervalo, limi
 
         if temp_atual < limite_min:
             temp_atual = limite_min
+
         elif temp_atual > limite_max:
             temp_atual = limite_max
 
